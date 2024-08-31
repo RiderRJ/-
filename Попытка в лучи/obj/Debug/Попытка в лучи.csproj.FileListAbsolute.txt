@@ -1,0 +1,7 @@
+C:\Users\Иван\source\repos\Попытка в лучи\Попытка в лучи\bin\Debug\Попытка в лучи.exe.config
+C:\Users\Иван\source\repos\Попытка в лучи\Попытка в лучи\bin\Debug\Попытка в лучи.exe
+C:\Users\Иван\source\repos\Попытка в лучи\Попытка в лучи\bin\Debug\Попытка в лучи.pdb
+C:\Users\Иван\source\repos\Попытка в лучи\Попытка в лучи\obj\Debug\Попытка в лучи.csproj.AssemblyReference.cache
+C:\Users\Иван\source\repos\Попытка в лучи\Попытка в лучи\obj\Debug\Попытка в лучи.csproj.CoreCompileInputs.cache
+C:\Users\Иван\source\repos\Попытка в лучи\Попытка в лучи\obj\Debug\Попытка в лучи.exe
+C:\Users\Иван\source\repos\Попытка в лучи\Попытка в лучи\obj\Debug\Попытка в лучи.pdb
