@@ -113,6 +113,25 @@ namespace Попытка_в_лучи
         {
             return $"x1={x1} y1={y1} - x2={x} y2={y}";
         }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Vector2 vector &&
+                   x1 == vector.x1 &&
+                   y1 == vector.y1 &&
+                   x == vector.x &&
+                   y == vector.y;
+        }
+
+        public override int GetHashCode()
+        {
+            int hashCode = 343804948;
+            hashCode = hashCode * -1521134295 + x1.GetHashCode();
+            hashCode = hashCode * -1521134295 + y1.GetHashCode();
+            hashCode = hashCode * -1521134295 + x.GetHashCode();
+            hashCode = hashCode * -1521134295 + y.GetHashCode();
+            return hashCode;
+        }
     }
     public struct Rectangle
     {
@@ -207,26 +226,30 @@ namespace Попытка_в_лучи
                 hit = intesectedSides[drawWallIndex] * intesections[drawWallIndex];
                 return true;
             }
-
-            //if (ray.angle < xAng && ray.angle > yAng
-            //    || ray.angle < yAng && ray.angle > xAng
-            //    || ray.angle < xInvAng && ray.angle > yInvAng
-            //    || ray.angle < yInvAng && ray.angle > xInvAng)
-            //    return true;
             return false;
         }
         //мб проверять CanHit сначала с самых близжайших объектов.
         public async Task<float[]> Hit(Ray ray)
         {
             Vector2 hit = new Vector2();
-            bool canHit = false;
             float _depth = depth;
-            IEnumerable<Rectangle> field = localField.ToList().Where(obj => obj.Distance(ray.starterPoint) <= _depth);
-            foreach (var rect in field) 
+            List<Rectangle> field = localField.Where(obj => obj.Distance(ray.starterPoint) <= _depth).ToList();
+            List<float> distances = new List<float>();
+            List<Rectangle> sortedField = new List<Rectangle>(); 
+            int sortIterations = field.Count;
+            foreach (var item in field)
+                distances.Add(item.Distance(ray.starterPoint));
+            for (int i = 0; i < sortIterations; i++)
+            {
+                int minId = distances.FindIndex(distance => distance == distances.Min());
+                sortedField.Add(field[minId]);
+                field.RemoveAt(minId);
+                distances.RemoveAt(minId);
+            }
+            foreach (var rect in sortedField)
                 if (CanHit(ray, rect, ref hit))
                 {
                     Program.canHit = true;
-                    canHit = true;
                     return new float[] { hit.x, hit.y };
                 }
             return new float[] { float.NaN, float.NaN };
