@@ -114,24 +114,24 @@ namespace Попытка_в_лучи
             return $"x1={x1} y1={y1} - x2={x} y2={y}";
         }
 
-        public override bool Equals(object obj)
-        {
-            return obj is Vector2 vector &&
-                   x1 == vector.x1 &&
-                   y1 == vector.y1 &&
-                   x == vector.x &&
-                   y == vector.y;
-        }
+        //public override bool Equals(object obj)
+        //{
+        //    return obj is Vector2 vector &&
+        //           x1 == vector.x1 &&
+        //           y1 == vector.y1 &&
+        //           x == vector.x &&
+        //           y == vector.y;
+        //}
 
-        public override int GetHashCode()
-        {
-            int hashCode = 343804948;
-            hashCode = hashCode * -1521134295 + x1.GetHashCode();
-            hashCode = hashCode * -1521134295 + y1.GetHashCode();
-            hashCode = hashCode * -1521134295 + x.GetHashCode();
-            hashCode = hashCode * -1521134295 + y.GetHashCode();
-            return hashCode;
-        }
+        //public override int GetHashCode()
+        //{
+        //    int hashCode = 343804948;
+        //    hashCode = hashCode * -1521134295 + x1.GetHashCode();
+        //    hashCode = hashCode * -1521134295 + y1.GetHashCode();
+        //    hashCode = hashCode * -1521134295 + x.GetHashCode();
+        //    hashCode = hashCode * -1521134295 + y.GetHashCode();
+        //    return hashCode;
+        //}
     }
     public struct Rectangle
     {
@@ -163,6 +163,11 @@ namespace Попытка_в_лучи
                 return true;    
             return false;
         }
+        public Rectangle Round(int digits = 0)
+        {
+            return new Rectangle(new Vector2((float)Math.Round(x.x, digits), (float)Math.Round(x.y, digits)),
+                new Vector2((float)Math.Round(y.x), (float)Math.Round(y.y)));
+        }
         public Vector2 x;
         public Vector2 y;
     }
@@ -188,54 +193,56 @@ namespace Попытка_в_лучи
             localField = field;
             this.depth = depth;
         }
-        private bool CanHit(Ray ray, Rectangle obj, ref Vector2 hit)
-        {
-            Rectangle invertedObj = obj.Invert();
-            List<Vector2> intesectedSides = new List<Vector2>(); 
-            List<float> intesections = new List<float>();
-            List<float> distances = new List<float>();
-            Vector2[] sides = new Vector2[]
-            {
-                   new Vector2(obj.x.x,obj.x.y,invertedObj.y.x,invertedObj.y.y),
-                   new Vector2(obj.x.x,obj.x.y,invertedObj.x.x,invertedObj.x.y),
-                   new Vector2(obj.y.x,obj.y.y,invertedObj.y.x,invertedObj.y.y),
-                   new Vector2(obj.y.x,obj.y.y,invertedObj.x.x,invertedObj.x.y),
-            };
-            foreach (var side in sides)
-            {
-                Vector2 start = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x1, side.y1);
-                Vector2 end = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x, side.y);
-                float x = Converts.ToAngular(start.SubjectiveRotation(ray.starterPoint));
-                float y = Converts.ToAngular(end.SubjectiveRotation(ray.starterPoint));
-                float xAng = Math.Max(x,y);
-                float yAng = Math.Min(x, y); 
-                Vector2 rotatedVector = new Vector2(start.x,start.y,end.x,end.y);
-                if (x == xAng)
-                    rotatedVector.Invert(ref rotatedVector);
-                if (ray.angle < xAng && ray.angle > yAng
-                    || ray.angle < yAng && ray.angle > xAng)
-                {
-                    intesections.Add((ray.angle - yAng) / (xAng - yAng));
-                    intesectedSides.Add(rotatedVector);
-                    distances.Add(Math.Min(ray.starterPoint.Distance(start), ray.starterPoint.Distance(end)));
-                }
-            }
-            if(intesections.Count > 0)
-            {
-                int drawWallIndex = distances.FindIndex(dot => dot == distances.Min());
-                hit = intesectedSides[drawWallIndex] * intesections[drawWallIndex];
-                return true;
-            }
-            return false;
-        }
-        //мб проверять CanHit сначала с самых близжайших объектов.
+        //private bool CanHit(Ray ray, Rectangle obj, ref Vector2 hit)
+        //{
+        //    Rectangle invertedObj = obj.Invert();
+        //    List<Vector2> intesectedSides = new List<Vector2>(); 
+        //    List<float> intesections = new List<float>();
+        //    List<float> distances = new List<float>();
+        //    Vector2[] sides = new Vector2[]
+        //    {
+        //           new Vector2(obj.x.x,obj.x.y,invertedObj.y.x,invertedObj.y.y),
+        //           new Vector2(obj.x.x,obj.x.y,invertedObj.x.x,invertedObj.x.y),
+        //           new Vector2(obj.y.x,obj.y.y,invertedObj.y.x,invertedObj.y.y),
+        //           new Vector2(obj.y.x,obj.y.y,invertedObj.x.x,invertedObj.x.y),
+        //    };
+        //    foreach (var side in sides)
+        //    {
+        //        Vector2 start = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x1, side.y1);
+        //        Vector2 end = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x, side.y);
+        //        float x = Converts.ToAngular(start.SubjectiveRotation(ray.starterPoint));
+        //        float y = Converts.ToAngular(end.SubjectiveRotation(ray.starterPoint));
+        //        float xAng = Math.Max(x,y);
+        //        float yAng = Math.Min(x, y); 
+        //        Vector2 rotatedVector = new Vector2(start.x,start.y,end.x,end.y);
+        //        if (x == xAng)
+        //            rotatedVector.Invert(ref rotatedVector);
+        //        if (ray.angle < xAng && ray.angle > yAng
+        //            || ray.angle < yAng && ray.angle > xAng)
+        //        {
+        //            intesections.Add((ray.angle - yAng) / (xAng - yAng));
+        //            intesectedSides.Add(rotatedVector);
+        //            distances.Add(Math.Min(ray.starterPoint.Distance(start), ray.starterPoint.Distance(end)));
+        //        }
+        //    }
+        //    if(intesections.Count > 0)
+        //    {
+        //        int drawWallIndex = distances.FindIndex(dot => dot == distances.Min());
+        //        hit = intesectedSides[drawWallIndex] * intesections[drawWallIndex];
+        //        return true;
+        //    }
+        //    return false;
+        //}
         public async Task<float[]> Hit(Ray ray)
         {
             Vector2 hit = new Vector2();
             float _depth = depth;
+            int hitIndex;
             List<Rectangle> field = localField.Where(obj => obj.Distance(ray.starterPoint) <= _depth).ToList();
             List<float> distances = new List<float>();
             List<Rectangle> sortedField = new List<Rectangle>(); 
+            List<Vector2> potentialHits = new List<Vector2>(); 
+            List<float> hitsDistances = new List<float>(); 
             int sortIterations = field.Count;
             foreach (var item in field)
                 distances.Add(item.Distance(ray.starterPoint));
@@ -247,14 +254,50 @@ namespace Попытка_в_лучи
                 distances.RemoveAt(minId);
             }
             foreach (var rect in sortedField)
-                if (CanHit(ray, rect, ref hit))
+            {
+                Rectangle invertedObj = rect.Invert();
+                List<Vector2> intesectedSides = new List<Vector2>();
+                List<float> intesections = new List<float>();
+                List<float> intersectDistances = new List<float>();
+                Vector2[] sides = new Vector2[]
+                {
+                   new Vector2(rect.x.x,rect.x.y,invertedObj.y.x,invertedObj.y.y),
+                   new Vector2(rect.x.x,rect.x.y,invertedObj.x.x,invertedObj.x.y),
+                   new Vector2(rect.y.x,rect.y.y,invertedObj.y.x,invertedObj.y.y),
+                   new Vector2(rect.y.x,rect.y.y,invertedObj.x.x,invertedObj.x.y),
+                };
+                foreach (var side in sides)//надо как-то ограничить хз как
+                {
+                    Vector2 start = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x1, side.y1);
+                    Vector2 end = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x, side.y);
+                    float x = Converts.ToAngular(start.SubjectiveRotation(ray.starterPoint));
+                    float y = Converts.ToAngular(end.SubjectiveRotation(ray.starterPoint));
+                    float xAng = Math.Max(x, y);
+                    float yAng = Math.Min(x, y);
+                    Vector2 rotatedVector = new Vector2(start.x, start.y, end.x, end.y);
+                    if (x == xAng)
+                        rotatedVector.Invert(ref rotatedVector);
+                    if (ray.angle < xAng && ray.angle > yAng
+                        || ray.angle < yAng && ray.angle > xAng)
+                    {
+                        intesections.Add((ray.angle - yAng) / (xAng - yAng));
+                        intesectedSides.Add(rotatedVector);
+                        intersectDistances.Add(Math.Min(ray.starterPoint.Distance(start), ray.starterPoint.Distance(end)));
+                    }
+                }
+                if (intesections.Count > 0)
                 {
                     Program.canHit = true;
-                    return new float[] { hit.x, hit.y };
+                    int drawWallIndex = intersectDistances.FindIndex(dot => dot == intersectDistances.Min());
+                    potentialHits.Add(intesectedSides[drawWallIndex] * intesections[drawWallIndex]);
+                    hitsDistances.Add(ray.starterPoint.Distance(potentialHits.Last()));
                 }
-            return new float[] { float.NaN, float.NaN };
+            }
+            if (potentialHits.Count == 0) return new float[] { float.NaN, float.NaN };
+            hitIndex = hitsDistances.FindIndex(item => item == hitsDistances.Min());
+            return new float[] { potentialHits[hitIndex].x, potentialHits[hitIndex].y };
         }
-        public async Task<Vector2[]> HitsAsync(Vector2 start, float startAngle, float endAngle, float angularStep)
+        public async Task<Vector2[]> HitsAsync(Vector2 start, float startAngle, float endAngle, float angularStep) //вместо Async надо сделать многопоточность.
         {
             HashSet<Vector2> hits = new HashSet<Vector2>();
             List<Task<float[]>> tasks = new List<Task<float[]>>();
@@ -297,7 +340,11 @@ namespace Попытка_в_лучи
             Rectangle b = new Rectangle(new Vector2(15, 7), new Vector2(17, 9));
             Rectangle c = new Rectangle(new Vector2(15, 15), new Vector2(17, 17));
             Rectangle d = new Rectangle(new Vector2(7, 7), new Vector2(9, 9));
-            field = new[] { a, b, c, d };
+            Rectangle b1 = new Rectangle(new Vector2(0, 0), new Vector2(0, 20));
+            Rectangle b2 = new Rectangle(new Vector2(0, 0), new Vector2(0, 40));
+            Rectangle b3 = new Rectangle(new Vector2(20, 20), new Vector2(20, 0));
+            Rectangle b4 = new Rectangle(new Vector2(40, 40), new Vector2(40, 0));
+            field = new[] { a, b, c, d/*, b1, b2, b3, b4*/ };
             instance.FPSReset();
             instance.Update();
             while(true)
@@ -326,14 +373,13 @@ namespace Попытка_в_лучи
                 frameNumber = 0;
             }
         }
-        //Даже если удалить обработку, весь код займёт в секунду 12 кадров.
         protected async Task Update()
         {
             while (true)
             {
                 if (time > 6000)
                     Environment.Exit(0); 
-                List<Vector2> hits = new List<Vector2>();
+                List<Vector2> hits;
                 canHit = false;
                 time++;
                 frameNumber++;
@@ -364,7 +410,7 @@ namespace Попытка_в_лучи
                         if (mode == 48)
                             foreach (var elem in hits)
                             {
-                                if (new Rectangle(new Vector2(elem.x, elem.y), new Vector2(elem.x, elem.y)).Intersects(new Rectangle(new Vector2(i - 1f, j - 1f), new Vector2(i + 1f, j + 1f))))
+                                if (new Rectangle(new Vector2(elem.x, elem.y), new Vector2(elem.x, elem.y)).Round(1).Intersects(new Rectangle(new Vector2(i - 1f, j - 1f), new Vector2(i + 1f, j + 1f))))
                                 {
                                     drawCall++;
                                     draw = "#";
@@ -376,7 +422,7 @@ namespace Попытка_в_лучи
                         {
                             foreach (var elem in field)
                             {
-                                if (elem.Intersects(new Rectangle(new Vector2(i, j), new Vector2(i + 0.25f, j + 0.25f))))
+                                if (elem.Round(1).Intersects(new Rectangle(new Vector2(i - 1 / (float)width, j - 1 / (float)height), new Vector2(i + 1 / (float)width, j + 1 / (float)height))))
                                 {
                                     draw = "#";
                                     drawCall++;
