@@ -52,6 +52,10 @@ namespace Попытка_в_лучи
             if (y == 0 || x == 0) return 180f;
             return angle < 0 ? angle + 2 * 3.14f : angle;
         }
+        public float Angle(Vector2 between)
+        {
+            return between.Rotation - Rotation;
+        }
         public Vector2 Normalized()
         {
             return this / Magnitude;
@@ -104,6 +108,10 @@ namespace Попытка_в_лучи
         public static Vector2 operator *(Vector2 a, float b)
         {
             return new Vector2(a.x1, a.y1, (a.x - a.x1) * b + a.x1, (a.y - a.y1) * b + a.y1);//
+        }
+        public static float operator *(Vector2 a, Vector2 b)
+        {
+            return (float)Math.Cos(a.Angle(b)) * a.Magnitude * b.Magnitude;
         }
         public static Vector2 operator /(Vector2 a, float b)
         {
@@ -319,37 +327,39 @@ namespace Попытка_в_лучи
     {
         private readonly int width = 20;
         private readonly int height = 40;
-        private int time = 0;
         private static int mode = 48;
+        private static float horizon = 0;
+        private static int projHeight = 5;//макс высота объекта на расстоянии 1 ~метра
         private static string modeName;
         private string screen;
+        private int time = 0;
         private int frameNumber = 0;
         private int fps;
-        //игровая карта
-        private static Rectangle[] field;
+        public static Rectangle[] field;
         public static bool canHit;
         static Camera cam; 
         private float startAngle;
         private float endAngle;
-
+        public static List<Vector2> hits = new List<Vector2>();
+        public static List<Vector2> collisionHits = new List<Vector2>();
+        public static List<IThinker> thinkers = new List<IThinker>();
         static void Main(string[] args)
         {
             Program instance = new Program();
-            cam = new Camera(new Vector2(10,20),0f,45f, 30f);
+            cam = new Camera(new Vector2(10, 20), 0f, 45f, 30f);
             Rectangle a = new Rectangle(new Vector2(3, 3), new Vector2(5, 5));
             Rectangle b = new Rectangle(new Vector2(15, 7), new Vector2(17, 9));
             Rectangle c = new Rectangle(new Vector2(15, 15), new Vector2(17, 17));
             Rectangle d = new Rectangle(new Vector2(7, 7), new Vector2(9, 9));
-            Rectangle b1 = new Rectangle(new Vector2(0, 0), new Vector2(0, 20));
-            Rectangle b2 = new Rectangle(new Vector2(0, 0), new Vector2(0, 40));
-            Rectangle b3 = new Rectangle(new Vector2(20, 20), new Vector2(20, 0));
-            Rectangle b4 = new Rectangle(new Vector2(40, 40), new Vector2(40, 0));
-            field = new[] { a, b, c, d/*, b1, b2, b3, b4*/ };
+            Rectangle b1 = new Rectangle(new Vector2(0, 0), new Vector2(0, 40));//крыша
+            Rectangle b2 = new Rectangle(new Vector2(0, 0), new Vector2(20, 0));//левая
+            Rectangle b3 = new Rectangle(new Vector2(19, 25), new Vector2(19, 0));//БАГИИИИ БАГИИИ 
+            Rectangle b4 = new Rectangle(new Vector2(20, 20), new Vector2(20, 0));//
+            field = new[] { a, b, c, d, b1, b2/*, b3, b4 */};
             instance.FPSReset();
             instance.Update();
             while(true)
-            {
-                mode = Console.ReadKey().KeyChar;
+            {   
                 switch(mode)
                 {
                     case 48: //0
@@ -358,10 +368,14 @@ namespace Попытка_в_лучи
                     case 49: //1
                         modeName = "mapEnabled, rayCasting off";
                         break;
+                    case 51: //1
+                        modeName = "mapDisabled, rayCastingProjection on";
+                        break;
                     default:
                         modeName = "mapDisabled, rayCasting off";
                         break;
                 }
+                mode = Console.ReadKey().KeyChar;
             }
         }
         private async Task FPSReset()
@@ -377,24 +391,20 @@ namespace Попытка_в_лучи
         {
             while (true)
             {
-                if (time > 6000)
+                if (time > 60)
                     Environment.Exit(0); 
-                List<Vector2> hits;
                 canHit = false;
                 time++;
                 frameNumber++;
-                cam.Rotation -= 15f;
-                startAngle = cam.Rotation - cam.fov / 2f;
-                endAngle = cam.Rotation + cam.fov / 2f;
-                Think(out hits);
+                foreach (var thinker in thinkers)
+                    thinker.Think();
                 await Draw(hits.ToArray());
-                await Task.Delay(100);
+                await Task.Delay(50);
             }
         }
-        private void Think(out List<Vector2> hits)
+        private void Init()
         {
-            RayCast rayCast = new RayCast(0.0005f, cam.dof, ref field);
-            hits = rayCast.HitsAsync(cam.pos, startAngle, endAngle, 1f).Result.ToList();
+            Clear();
         }
         protected async Task Draw(Vector2[] hits)//нужно придумать, как по-другому отрисовывать кадр
         {
@@ -416,7 +426,7 @@ namespace Попытка_в_лучи
                                     draw = "#";
                                     break;
                                 }
-                                FovVisual(startAngle, endAngle, new Vector2(i, j), ref draw);
+                                FovVisual(cam.startAngle, cam.endAngle, new Vector2(i, j), ref draw);
                             }
                         if (mode == 49)
                         {
@@ -428,17 +438,29 @@ namespace Попытка_в_лучи
                                     drawCall++;
                                     break;
                                 }
-                                FovVisual(startAngle, endAngle, new Vector2(i, j), ref draw);
+                                FovVisual(cam.startAngle, cam.endAngle, new Vector2(i, j), ref draw);
                             }
                         }
-                        else FovVisual(startAngle, endAngle, new Vector2(i, j), ref draw);
+                        if (mode == 51)
+                        {
+                            //отрисовка полосок
+                            foreach(var elem in hits)
+                            {
+                                float lineLength = projHeight - (projHeight / cam.pos.Distance(elem) / 1 - projHeight);
+                                //actualSize - (actualSize / Distance / Const - actualSize);
+                            }
+                        }
+                        else
+                            FovVisual(cam.startAngle, cam.endAngle, new Vector2(i, j), ref draw);
 
                         screen += draw;
                     }
                     screen += "|\r\n";
                 }
             });
-            screen += $"Hits = {hits.Length} DrawWallCounts = {drawCall} \r\nCamera rotation = {cam.Rotation} \r\nHit prediction = {canHit}\r\nMode = {modeName}\r\nFps = {fps}";
+            //screen += $"Hits = {hits.Length} DrawWallCounts = {drawCall} \r\nCamera rotation = {cam.Rotation} \r\nHit prediction = {canHit}\r\nMode = {modeName}\r\nFps = {fps}";
+            screen += $"\r\n{cam.pos} Hits = {hits.Length} DrawWallCounts = {drawCall} \r\nCamera rotation = {cam.Rotation} \r\nOther hits = {collisionHits.Count}\r\n" +
+                $"Mode = {modeName}\r\nFps = {fps}\r\nCores = {Environment.ProcessorCount}";
             Clear();
             Console.Write(screen);
         }
@@ -453,6 +475,14 @@ namespace Попытка_в_лучи
         }
         private void Clear()
         {
+            //for (int i = 0; i < width; i++)
+            //{
+            //    for (int j = 0; j < height; j++)
+            //    {
+            //        screen += " ";
+            //    }
+            //    screen += "|\r\n";
+            //}
             Console.Clear();
         }
     }

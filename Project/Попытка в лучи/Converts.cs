@@ -8,7 +8,9 @@ namespace Попытка_в_лучи
 {
     internal class Converts
     {
-        private const float angToPie = 1 / 3.14f * 180f;
+        private const float pie = 3.1415926f;
+        //private const float pie = 3.14f;
+        private const float angToPie = 1 / pie * 180f;
         public static float ToRadians(float angAngle)
         {
             return angAngle / angToPie;
