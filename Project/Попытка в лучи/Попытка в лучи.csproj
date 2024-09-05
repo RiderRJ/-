@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Camera.cs" />
+    <Compile Include="Controller.cs" />
     <Compile Include="Converts.cs" />
     <Compile Include="Interfaces.cs" />
     <Compile Include="Program.cs" />

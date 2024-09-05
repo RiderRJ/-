@@ -1,10 +1,12 @@
 ﻿using System;
 using System.CodeDom;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Попытка_в_лучи
@@ -66,14 +68,15 @@ namespace Попытка_в_лучи
         }
         public void Invert(ref Vector2 origin)
         {
-            origin = new Vector2(origin.x,origin.y,origin.x1,origin.y1);
+            origin = new Vector2(origin.x, origin.y, origin.x1, origin.y1);
         }
 
-        public Vector2 Rotate(float angle)
+        public Vector2 Rotate(float angleInDegrees)//надо изучить формулу и исправить баг с поворотом вектора
         {
-            float ca = (float)Math.Cos(Converts.ToRadians(angle));
-            float sa = (float)Math.Sin(Converts.ToRadians(angle));
-            return new Vector2(ca * x - sa *y, sa * x + ca * y);
+            float ca = (float)Math.Cos(Converts.ToRadians(angleInDegrees));
+            float sa = (float)Math.Sin(Converts.ToRadians(angleInDegrees));
+            return new Vector2(x1, y1, ca * (x - x1) - sa * (y - y1) + x1, sa * (x - x1) + ca * (y - y1) + y1);
+            //return new Vector2(ca * (x - x1) + x1, sa * (y - y1) + y1); //сравнить обе версии, прийти к общей
         }
         public float Rotation
         {
@@ -83,7 +86,7 @@ namespace Попытка_в_лучи
                 float centerizedX = x - x1;
                 float angle = (float)Math.Atan2(centerizedY, centerizedX);
                 return angle < 0 ? angle + 2 * 3.14f : angle;
-            }  
+            }
         }
         public float AngularRotation
         {
@@ -103,7 +106,7 @@ namespace Попытка_в_лучи
 
         public static Vector2 operator +(Vector2 a, Vector2 b)
         {
-            return new Vector2(a.x1, a.y1, a.x + b.x-b.x1, a.y + b.y - b.y1);
+            return new Vector2(a.x1, a.y1, a.x + b.x - b.x1, a.y + b.y - b.y1);
         }
         public static Vector2 operator *(Vector2 a, float b)
         {
@@ -115,7 +118,8 @@ namespace Попытка_в_лучи
         }
         public static Vector2 operator /(Vector2 a, float b)
         {
-            return new Vector2(a.x / b, a.y / b);
+            //return new Vector2(a.x / b, a.y / b);
+            return new Vector2(a.x1, a.y1, (a.x - a.x1) / b + a.x1, (a.y - a.y1) / b + a.y1);
         }
         public override string ToString()
         {
@@ -148,6 +152,11 @@ namespace Попытка_в_лучи
             if (x.y1 > 0 || x.x1 > 0 || y.x1 > 0 || y.y1 > 0) throw new ArgumentException();
             this.x = x; this.y = y;
         }
+        public Rectangle(Vector2 x)
+        {
+            this.x = new Vector2(x.x1,x.y1);
+            y = new Vector2(x.x, x.y);
+        }
         public Rectangle Invert()
         {
             return new Rectangle(new Vector2(y.x, x.y), new Vector2(x.x, y.y));
@@ -163,12 +172,11 @@ namespace Попытка_в_лучи
         }
         public bool Intersects(Rectangle b)
         {
-            Rectangle a = this;
-            if (b.x.x > a.x.x && b.x.y > a.x.y && b.x.x < a.y.x && b.x.y < a.y.y
-                || b.y.x > a.x.x && b.y.y > a.x.y && b.y.x < a.y.x && b.y.y < a.y.y
-                || a.x.x > b.x.x && a.x.y > b.x.y && a.x.x < b.y.x && a.x.y < b.y.y
-                || a.y.x > b.x.x && a.y.y > b.x.y && a.y.x < b.y.x && a.y.y < b.y.y)
-                return true;    
+            if (b.x.x > x.x && b.x.y > x.y && b.x.x < y.x && b.x.y < y.y
+                || b.y.x > x.x && b.y.y > x.y && b.y.x < y.x && b.y.y < y.y
+                || x.x > b.x.x && x.y > b.x.y && x.x < b.y.x && x.y < b.y.y
+                || y.x > b.x.x && y.y > b.x.y && y.x < b.y.x && y.y < b.y.y)
+                return true;
             return false;
         }
         public Rectangle Round(int digits = 0)
@@ -195,73 +203,38 @@ namespace Попытка_в_лучи
         public float stepLength;
         private Rectangle[] localField;
         private float depth;
-        public RayCast(float step, float depth,ref Rectangle[] field)
+        public RayCast(float step, float depth, ref Rectangle[] field)
         {
             stepLength = step;
             localField = field;
             this.depth = depth;
         }
-        //private bool CanHit(Ray ray, Rectangle obj, ref Vector2 hit)
-        //{
-        //    Rectangle invertedObj = obj.Invert();
-        //    List<Vector2> intesectedSides = new List<Vector2>(); 
-        //    List<float> intesections = new List<float>();
-        //    List<float> distances = new List<float>();
-        //    Vector2[] sides = new Vector2[]
-        //    {
-        //           new Vector2(obj.x.x,obj.x.y,invertedObj.y.x,invertedObj.y.y),
-        //           new Vector2(obj.x.x,obj.x.y,invertedObj.x.x,invertedObj.x.y),
-        //           new Vector2(obj.y.x,obj.y.y,invertedObj.y.x,invertedObj.y.y),
-        //           new Vector2(obj.y.x,obj.y.y,invertedObj.x.x,invertedObj.x.y),
-        //    };
-        //    foreach (var side in sides)
-        //    {
-        //        Vector2 start = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x1, side.y1);
-        //        Vector2 end = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x, side.y);
-        //        float x = Converts.ToAngular(start.SubjectiveRotation(ray.starterPoint));
-        //        float y = Converts.ToAngular(end.SubjectiveRotation(ray.starterPoint));
-        //        float xAng = Math.Max(x,y);
-        //        float yAng = Math.Min(x, y); 
-        //        Vector2 rotatedVector = new Vector2(start.x,start.y,end.x,end.y);
-        //        if (x == xAng)
-        //            rotatedVector.Invert(ref rotatedVector);
-        //        if (ray.angle < xAng && ray.angle > yAng
-        //            || ray.angle < yAng && ray.angle > xAng)
-        //        {
-        //            intesections.Add((ray.angle - yAng) / (xAng - yAng));
-        //            intesectedSides.Add(rotatedVector);
-        //            distances.Add(Math.Min(ray.starterPoint.Distance(start), ray.starterPoint.Distance(end)));
-        //        }
-        //    }
-        //    if(intesections.Count > 0)
-        //    {
-        //        int drawWallIndex = distances.FindIndex(dot => dot == distances.Min());
-        //        hit = intesectedSides[drawWallIndex] * intesections[drawWallIndex];
-        //        return true;
-        //    }
-        //    return false;
-        //}
         public async Task<float[]> Hit(Ray ray)
         {
-            Vector2 hit = new Vector2();
             float _depth = depth;
-            int hitIndex;
             List<Rectangle> field = localField.Where(obj => obj.Distance(ray.starterPoint) <= _depth).ToList();
-            List<float> distances = new List<float>();
-            List<Rectangle> sortedField = new List<Rectangle>(); 
-            List<Vector2> potentialHits = new List<Vector2>(); 
-            List<float> hitsDistances = new List<float>(); 
-            int sortIterations = field.Count;
-            foreach (var item in field)
-                distances.Add(item.Distance(ray.starterPoint));
-            for (int i = 0; i < sortIterations; i++)
+            field.Sort(delegate (Rectangle x, Rectangle y)
             {
-                int minId = distances.FindIndex(distance => distance == distances.Min());
-                sortedField.Add(field[minId]);
-                field.RemoveAt(minId);
-                distances.RemoveAt(minId);
-            }
-            foreach (var rect in sortedField)
+                if (x.Distance(ray.starterPoint) > y.Distance(ray.starterPoint)) return 1;
+                if (x.Distance(ray.starterPoint) < y.Distance(ray.starterPoint)) return -1;
+                return 0;
+            });
+            List<float> distances = new List<float>();
+            //List<Rectangle> sortedField = new List<Rectangle>();
+            List<Vector2> potentialHits = new List<Vector2>();
+            List<float> hitsDistances = new List<float>();
+            int hitIndex;
+            //int sortIterations = field.Count;//мб убрать к х-ям
+            //foreach (var item in field)
+            //    distances.Add(item.Distance(ray.starterPoint));
+            //for (int i = 0; i < sortIterations; i++)
+            //{
+            //    int minId = distances.FindIndex(distance => distance == distances.Min());
+            //    sortedField.Add(field[minId]);
+            //    field.RemoveAt(minId);
+            //    distances.RemoveAt(minId);
+            //}
+            foreach (var rect in field)
             {
                 Rectangle invertedObj = rect.Invert();
                 List<Vector2> intesectedSides = new List<Vector2>();
@@ -274,21 +247,21 @@ namespace Попытка_в_лучи
                    new Vector2(rect.y.x,rect.y.y,invertedObj.y.x,invertedObj.y.y),
                    new Vector2(rect.y.x,rect.y.y,invertedObj.x.x,invertedObj.x.y),
                 };
-                foreach (var side in sides)//надо как-то ограничить хз как
+                foreach (var side in sides)
                 {
                     Vector2 start = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x1, side.y1);
                     Vector2 end = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x, side.y);
                     float x = Converts.ToAngular(start.SubjectiveRotation(ray.starterPoint));
                     float y = Converts.ToAngular(end.SubjectiveRotation(ray.starterPoint));
-                    float xAng = Math.Max(x, y);
-                    float yAng = Math.Min(x, y);
+                    float maxLim = Math.Max(x, y);
+                    float minLim = Math.Min(x, y);
                     Vector2 rotatedVector = new Vector2(start.x, start.y, end.x, end.y);
-                    if (x == xAng)
+                    if (x == maxLim)
                         rotatedVector.Invert(ref rotatedVector);
-                    if (ray.angle < xAng && ray.angle > yAng
-                        || ray.angle < yAng && ray.angle > xAng)
+                    if (ray.angle < maxLim && ray.angle > minLim
+                        || ray.angle < minLim && ray.angle > maxLim)
                     {
-                        intesections.Add((ray.angle - yAng) / (xAng - yAng));
+                        intesections.Add((ray.angle - minLim) / (maxLim - minLim));
                         intesectedSides.Add(rotatedVector);
                         intersectDistances.Add(Math.Min(ray.starterPoint.Distance(start), ray.starterPoint.Distance(end)));
                     }
@@ -337,34 +310,25 @@ namespace Попытка_в_лучи
         private int fps;
         public static Rectangle[] field;
         public static bool canHit;
-        static Camera cam; 
-        private float startAngle;
-        private float endAngle;
+        static Camera cam;
         public static List<Vector2> hits = new List<Vector2>();
         public static List<Vector2> collisionHits = new List<Vector2>();
         public static List<IThinker> thinkers = new List<IThinker>();
         static void Main(string[] args)
         {
             Program instance = new Program();
-            cam = new Camera(new Vector2(10, 20), 0f, 45f, 30f);
-            Rectangle a = new Rectangle(new Vector2(3, 3), new Vector2(5, 5));
-            Rectangle b = new Rectangle(new Vector2(15, 7), new Vector2(17, 9));
-            Rectangle c = new Rectangle(new Vector2(15, 15), new Vector2(17, 17));
-            Rectangle d = new Rectangle(new Vector2(7, 7), new Vector2(9, 9));
-            Rectangle b1 = new Rectangle(new Vector2(0, 0), new Vector2(0, 40));//крыша
-            Rectangle b2 = new Rectangle(new Vector2(0, 0), new Vector2(20, 0));//левая
-            Rectangle b3 = new Rectangle(new Vector2(19, 25), new Vector2(19, 0));//БАГИИИИ БАГИИИ 
-            Rectangle b4 = new Rectangle(new Vector2(20, 20), new Vector2(20, 0));//
-            field = new[] { a, b, c, d, b1, b2/*, b3, b4 */};
+            instance.Init();
             instance.FPSReset();
             instance.Update();
-            while(true)
-            {   
-                switch(mode)
+            Thread inputCather = new Thread(Controller.StartTracking);
+            inputCather.Start();
+            while (true)
+            {
+                switch (mode)
                 {
                     case 48: //0
                         modeName = "mapDisabled, rayCasting on";
-                        break; 
+                        break;
                     case 49: //1
                         modeName = "mapEnabled, rayCasting off";
                         break;
@@ -380,7 +344,7 @@ namespace Попытка_в_лучи
         }
         private async Task FPSReset()
         {
-            while(true)
+            while (true)
             {
                 await Task.Delay(1000);
                 fps = frameNumber;
@@ -391,24 +355,35 @@ namespace Попытка_в_лучи
         {
             while (true)
             {
-                if (time > 60)
-                    Environment.Exit(0); 
+                if (time > 10)
+                    Environment.Exit(0);
                 canHit = false;
-                time++;
+                //time++;
                 frameNumber++;
                 foreach (var thinker in thinkers)
                     thinker.Think();
                 await Draw(hits.ToArray());
-                await Task.Delay(50);
+                await Task.Delay(250);
             }
         }
         private void Init()
         {
-            Clear();
+            //Clear();
+            cam = new Camera(new Vector2(10, 20, 10, 20), 90f, 45f, 30f);
+            Rectangle a = new Rectangle(new Vector2(3, 3), new Vector2(5, 5));
+            Rectangle b = new Rectangle(new Vector2(15, 7), new Vector2(17, 9));
+            Rectangle c = new Rectangle(new Vector2(15, 15), new Vector2(17, 17));
+            Rectangle d = new Rectangle(new Vector2(7, 7), new Vector2(9, 9));
+            Rectangle b1 = new Rectangle(new Vector2(-1, -1), new Vector2(1, 40));//крыша
+            Rectangle b2 = new Rectangle(new Vector2(-1, -1), new Vector2(20, 1));//левая
+            Rectangle b3 = new Rectangle(new Vector2(19, 39), new Vector2(19, -3));//БАГИИИИ БАГИИИ 
+            Rectangle b4 = new Rectangle(new Vector2(18, 18), new Vector2(0, 18));//
+            field = new[] { a, b, c, d/*, b1, b2, b3, b4 */};
+
         }
         protected async Task Draw(Vector2[] hits)//нужно придумать, как по-другому отрисовывать кадр
         {
-            screen = ""; 
+            screen = "";
             int drawCall = 0;
             await Task.Run(() =>
             {
@@ -426,32 +401,34 @@ namespace Попытка_в_лучи
                                     draw = "#";
                                     break;
                                 }
-                                FovVisual(cam.startAngle, cam.endAngle, new Vector2(i, j), ref draw);
+                                FovVisual(cam.StartAngle, cam.EndAngle, new Vector2(i, j), ref draw);
                             }
                         if (mode == 49)
                         {
                             foreach (var elem in field)
                             {
-                                if (elem.Round(1).Intersects(new Rectangle(new Vector2(i - 1 / (float)width, j - 1 / (float)height), new Vector2(i + 1 / (float)width, j + 1 / (float)height))))
+                                if (i == 19 && j == 1)
+                                    ;
+                                if (elem.Round(1).Intersects(new Rectangle(new Vector2(i - 1f, j - 1f), new Vector2(i + 1f, j + 1f))))
                                 {
                                     draw = "#";
                                     drawCall++;
                                     break;
                                 }
-                                FovVisual(cam.startAngle, cam.endAngle, new Vector2(i, j), ref draw);
+                                FovVisual(cam.StartAngle, cam.EndAngle, new Vector2(i, j), ref draw);
                             }
                         }
                         if (mode == 51)
                         {
                             //отрисовка полосок
-                            foreach(var elem in hits)
+                            foreach (var elem in hits)
                             {
-                                float lineLength = projHeight - (projHeight / cam.pos.Distance(elem) / 1 - projHeight);
+                                float lineLength = projHeight - (projHeight / cam.Position.Distance(elem) / 1 - projHeight);
                                 //actualSize - (actualSize / Distance / Const - actualSize);
                             }
                         }
                         else
-                            FovVisual(cam.startAngle, cam.endAngle, new Vector2(i, j), ref draw);
+                            FovVisual(cam.StartAngle, cam.EndAngle, new Vector2(i, j), ref draw);
 
                         screen += draw;
                     }
@@ -459,17 +436,17 @@ namespace Попытка_в_лучи
                 }
             });
             //screen += $"Hits = {hits.Length} DrawWallCounts = {drawCall} \r\nCamera rotation = {cam.Rotation} \r\nHit prediction = {canHit}\r\nMode = {modeName}\r\nFps = {fps}";
-            screen += $"\r\n{cam.pos} Hits = {hits.Length} DrawWallCounts = {drawCall} \r\nCamera rotation = {cam.Rotation} \r\nOther hits = {collisionHits.Count}\r\n" +
-                $"Mode = {modeName}\r\nFps = {fps}\r\nCores = {Environment.ProcessorCount}";
+            screen += $"\r\n{cam.Position} Hits = {hits.Length} DrawWallCounts = {drawCall} \r\nCamera rotation = {cam.Rotation} \r\nOther hits = {collisionHits.Count}\r\n" +
+                $"Mode = {modeName}\r\nFps = {fps}\r\nCores = {Environment.ProcessorCount} KeyPressed = {Controller.pressedKey}";
             Clear();
             Console.Write(screen);
         }
         private void FovVisual(float xAng, float yAng, Vector2 dot, ref string draw)
         {
             if (draw != " ") return;
-            Vector2 subjective = new Vector2(cam.pos.x, cam.pos.y, dot.x, dot.y);
+            Vector2 subjective = new Vector2(cam.Position.x, cam.Position.y, dot.x, dot.y);
             float subjRotation = subjective.AngularRotation;
-            if (subjRotation >= xAng && subjRotation <= yAng 
+            if (subjRotation >= xAng && subjRotation <= yAng
                 || subjRotation <= xAng && subjRotation >= yAng)
                 draw = "-";
         }

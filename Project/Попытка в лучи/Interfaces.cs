@@ -8,12 +8,13 @@ namespace Попытка_в_лучи
 {
     interface IMovable
     {
-        void Move();
+        Vector2 Position { get; set; }
+        void Move(Vector2 destignation);
     }
     interface IThinker
     {
-        List<Vector2> vision { get; set; }
-        List<Vector2> other { get; set; }
+        List<Vector2> Vision { get; set; }
+        List<Vector2> Other { get; set; }
         void Think();
     }
 }
