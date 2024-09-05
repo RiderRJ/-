@@ -62,7 +62,7 @@ namespace Попытка_в_лучи
             RayCast rayCast = new RayCast(0.0005f, dof, ref Program.field);
             Vision = rayCast.HitsAsync(Position, StartAngle, EndAngle, 5f).Result.ToList();
             Other = rayCast.HitsAsync(Position, 0f, 360f, 7f).Result.ToList();
-            //Rotation -= 15f;
+            Rotation -= 15f;
             Program.hits = Vision;
             Program.collisionHits = Other;
             Move(CalcPosition());

@@ -172,12 +172,9 @@ namespace Попытка_в_лучи
         }
         public bool Intersects(Rectangle b)
         {
-            if (b.x.x > x.x && b.x.y > x.y && b.x.x < y.x && b.x.y < y.y
-                || b.y.x > x.x && b.y.y > x.y && b.y.x < y.x && b.y.y < y.y
-                || x.x > b.x.x && x.y > b.x.y && x.x < b.y.x && x.y < b.y.y
-                || y.x > b.x.x && y.y > b.x.y && y.x < b.y.x && y.y < b.y.y)
-                return true;
-            return false;
+            if (x.x > b.y.x || b.x.x > y.x) return false;
+            if (x.y > b.y.y || b.x.y > y.y) return false; 
+            return true;
         }
         public Rectangle Round(int digits = 0)
         {
@@ -209,7 +206,7 @@ namespace Попытка_в_лучи
             localField = field;
             this.depth = depth;
         }
-        public async Task<float[]> Hit(Ray ray)
+        public async Task<Vector2> Hit(Ray ray)
         {
             float _depth = depth;
             List<Rectangle> field = localField.Where(obj => obj.Distance(ray.starterPoint) <= _depth).ToList();
@@ -274,23 +271,23 @@ namespace Попытка_в_лучи
                     hitsDistances.Add(ray.starterPoint.Distance(potentialHits.Last()));
                 }
             }
-            if (potentialHits.Count == 0) return new float[] { float.NaN, float.NaN };
+            if (potentialHits.Count == 0) return new Vector2(float.NaN, float.NaN);
             hitIndex = hitsDistances.FindIndex(item => item == hitsDistances.Min());
-            return new float[] { potentialHits[hitIndex].x, potentialHits[hitIndex].y };
+            return potentialHits[hitIndex];
         }
         public async Task<Vector2[]> HitsAsync(Vector2 start, float startAngle, float endAngle, float angularStep) //вместо Async надо сделать многопоточность.
         {
             HashSet<Vector2> hits = new HashSet<Vector2>();
-            List<Task<float[]>> tasks = new List<Task<float[]>>();
+            List<Task<Vector2>> tasks = new List<Task<Vector2>>();
             for (float i = startAngle; i < endAngle; i += angularStep)
             {
                 Ray ray = new Ray(start, i);
                 tasks.Add(Hit(ray));
             }
-            float[][] results = await Task.WhenAll(tasks);
+            Vector2[] results = await Task.WhenAll(tasks);
             foreach (var hitPos in results)
             {
-                hits.Add(new Vector2(hitPos[0], hitPos[1]));
+                hits.Add(hitPos);
             }
             hits.RemoveWhere(x => float.IsNaN(x.x) || float.IsNaN(x.y));
             return hits.ToArray();
@@ -369,7 +366,7 @@ namespace Попытка_в_лучи
         private void Init()
         {
             //Clear();
-            cam = new Camera(new Vector2(10, 20, 10, 20), 90f, 45f, 30f);
+            cam = new Camera(new Vector2(10, 20, 10, 20), 270f, 45f, 30f);
             Rectangle a = new Rectangle(new Vector2(3, 3), new Vector2(5, 5));
             Rectangle b = new Rectangle(new Vector2(15, 7), new Vector2(17, 9));
             Rectangle c = new Rectangle(new Vector2(15, 15), new Vector2(17, 17));
@@ -395,12 +392,15 @@ namespace Попытка_в_лучи
                         if (mode == 48)
                             foreach (var elem in hits)
                             {
-                                if (new Rectangle(new Vector2(elem.x, elem.y), new Vector2(elem.x, elem.y)).Round(1).Intersects(new Rectangle(new Vector2(i - 1f, j - 1f), new Vector2(i + 1f, j + 1f))))
+                                if (new Rectangle(new Vector2(elem.x1, elem.y1, elem.x, elem.y)).Round(1).
+                                Intersects(new Rectangle(new Vector2(i - 1 / (float)width, j - 1 / (float)height), new Vector2(i + 1 / (float)width, j + 1 / (float)height))))
                                 {
                                     drawCall++;
                                     draw = "#";
                                     break;
                                 }
+                                if (hits.Length > 0)
+                                    ;
                                 FovVisual(cam.StartAngle, cam.EndAngle, new Vector2(i, j), ref draw);
                             }
                         if (mode == 49)
@@ -409,7 +409,7 @@ namespace Попытка_в_лучи
                             {
                                 if (i == 19 && j == 1)
                                     ;
-                                if (elem.Round(1).Intersects(new Rectangle(new Vector2(i - 1f, j - 1f), new Vector2(i + 1f, j + 1f))))
+                                if (elem.Round(1).Intersects(new Rectangle(new Vector2(i - 1/(float)width, j - 1 / (float)height), new Vector2(i + 1 / (float)width, j + 1 / (float)height))))
                                 {
                                     draw = "#";
                                     drawCall++;
