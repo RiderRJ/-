@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 
 namespace Попытка_в_лучи
 {
-    public class Camera : IThinker, IMovable
+    public class Camera : Thinker, IMovable
     {
         private float rotation;
         public Vector2 Position { get; set; }
-        public List<Vector2> Vision { get; set; } = new List<Vector2>();
-        public List<Vector2> Other { get; set; } = new List<Vector2>();
+        public override List<Vector2> Vision { get; set; } = new List<Vector2>();
+        public override List<Vector2> Other { get; set; } = new List<Vector2>();
         public float StartAngle { get; private set; }
         public float EndAngle { get; private set; }
         public float Rotation
@@ -55,14 +55,13 @@ namespace Попытка_в_лучи
             StartAngle = Rotation - fov / 2;
             EndAngle = Rotation + fov / 2;
             dof = depthOfField;
-            Program.thinkers.Add(this);
         }
-        public void Think()
+        public override void Think()
         {
             RayCast rayCast = new RayCast(0.0005f, dof, ref Program.field);
             Vision = rayCast.HitsAsync(Position, StartAngle, EndAngle, 5f).Result.ToList();
             Other = rayCast.HitsAsync(Position, 0f, 360f, 7f).Result.ToList();
-            Rotation -= 15f;
+            //Rotation -= 15f;
             Program.hits = Vision;
             Program.collisionHits = Other;
             Move(CalcPosition());

@@ -11,10 +11,15 @@ namespace Попытка_в_лучи
         Vector2 Position { get; set; }
         void Move(Vector2 destignation);
     }
-    interface IThinker
+    public abstract class Thinker 
     {
-        List<Vector2> Vision { get; set; }
-        List<Vector2> Other { get; set; }
-        void Think();
+        public static List<Thinker> thinkers = new List<Thinker>();
+        public Thinker()
+        {
+            thinkers.Add(this);
+        }
+        public abstract List<Vector2> Vision { get; set; }
+        public abstract List<Vector2> Other { get; set; }
+        public abstract void Think();
     }
 }

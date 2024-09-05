@@ -310,7 +310,6 @@ namespace Попытка_в_лучи
         static Camera cam;
         public static List<Vector2> hits = new List<Vector2>();
         public static List<Vector2> collisionHits = new List<Vector2>();
-        public static List<IThinker> thinkers = new List<IThinker>();
         static void Main(string[] args)
         {
             Program instance = new Program();
@@ -336,7 +335,9 @@ namespace Попытка_в_лучи
                         modeName = "mapDisabled, rayCasting off";
                         break;
                 }
-                mode = Console.ReadKey().KeyChar;
+                var key = Console.ReadKey();
+                if (key.KeyChar == 48 || key.KeyChar == 49 || key.KeyChar == 51)
+                    mode = key.KeyChar;
             }
         }
         private async Task FPSReset()
@@ -352,12 +353,12 @@ namespace Попытка_в_лучи
         {
             while (true)
             {
-                if (time > 10)
+                if (time > 60)
                     Environment.Exit(0);
                 canHit = false;
-                //time++;
+                time++;
                 frameNumber++;
-                foreach (var thinker in thinkers)
+                foreach (var thinker in Thinker.thinkers)
                     thinker.Think();
                 await Draw(hits.ToArray());
                 await Task.Delay(250);
@@ -399,8 +400,6 @@ namespace Попытка_в_лучи
                                     draw = "#";
                                     break;
                                 }
-                                if (hits.Length > 0)
-                                    ;
                                 FovVisual(cam.StartAngle, cam.EndAngle, new Vector2(i, j), ref draw);
                             }
                         if (mode == 49)

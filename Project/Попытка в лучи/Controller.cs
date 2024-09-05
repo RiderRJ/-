@@ -20,7 +20,7 @@ namespace Попытка_в_лучи
         }
         public static async Task Input()
         {
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 while (true)
                 {
@@ -45,7 +45,8 @@ namespace Попытка_в_лучи
                             pressedKey = Key.RightArrow;
 
                     }
-                    //else pressedKey = Key.NotAKey;
+                    await Task.Delay(2000);
+                    pressedKey = Key.NotAKey;
                 }
             });
         }
