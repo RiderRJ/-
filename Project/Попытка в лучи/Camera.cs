@@ -6,16 +6,16 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Policy;
 using System.Threading.Tasks;
 
 namespace Попытка_в_лучи
 {
     public class Camera : Thinker, IMovable
     {
-        private float rotation;
-        public Vector2 Position { get; set; }
         public override List<Vector2> Vision { get; set; } = new List<Vector2>();
         public override List<Vector2> Other { get; set; } = new List<Vector2>();
+        public Vector2 Position { get; set; }
         public float StartAngle { get; private set; }
         public float EndAngle { get; private set; }
         public float Rotation
@@ -33,20 +33,12 @@ namespace Попытка_в_лучи
                 rotation = value;
             }
         }
-        public float RadiansRotation
-        {
-            get
-            {
-                return Rotation / 180 * 3.14f;
-            }
-            private set
-            {
-
-            }
-        }
-        public float dof;
-        public float fov;
+        private float rotation;
+        public float dof;//depth of field
+        public float fov;//field of view
         private float speed = 1f;
+        private float scaleX = 2f;
+        private float scaleY = 2f;
         public Camera(Vector2 cameraPos, float camRotation, float fieldOfView, float depthOfField) 
         {
             Position = cameraPos;
@@ -59,25 +51,29 @@ namespace Попытка_в_лучи
         public override void Think()
         {
             RayCast rayCast = new RayCast(0.0005f, dof, ref Program.field);
-            Vision = rayCast.HitsAsync(Position, StartAngle, EndAngle, 5f).Result.ToList();
+            Vision = rayCast.HitsAsync(Position, StartAngle, EndAngle, 0.5f).Result.ToList();
             Other = rayCast.HitsAsync(Position, 0f, 360f, 7f).Result.ToList();
-            //Rotation -= 15f;
             Program.hits = Vision;
             Program.collisionHits = Other;
             Move(CalcPosition());
         }
         private Vector2 CalcPosition()  //Вроде работает, только медленно пздц.
         {
+            Vector2 nPosition = new Vector2();
             switch(Controller.pressedKey)
             {
                 case Controller.Key.W:
-                    return new Vector2(Position.x, Position.y, Position.x, Position.y - speed).Rotate(Rotation - 270f);
+                    nPosition = new Vector2(Position.x, Position.y, Position.x, Position.y - speed).Rotate(Rotation - 270f);
+                    break;
                 case Controller.Key.A:
-                    return new Vector2(Position.x, Position.y, Position.x, Position.y - speed).Rotate(Rotation - 180f);
+                    nPosition = new Vector2(Position.x, Position.y, Position.x, Position.y - speed).Rotate(Rotation - 180f);
+                    break;
                 case Controller.Key.S:
-                    return new Vector2(Position.x, Position.y, Position.x, Position.y - speed).Rotate(Rotation - 90f);
+                    nPosition = new Vector2(Position.x, Position.y, Position.x, Position.y - speed).Rotate(Rotation - 90f);
+                    break;
                 case Controller.Key.D:
-                    return new Vector2(Position.x, Position.y, Position.x, Position.y - speed).Rotate(Rotation);
+                    nPosition = new Vector2(Position.x, Position.y, Position.x, Position.y - speed).Rotate(Rotation);
+                    break;
                 case Controller.Key.LeftArrow:
                     Rotation += 10f;
                     break; 
@@ -85,7 +81,8 @@ namespace Попытка_в_лучи
                     Rotation -= 10f;
                     break;
             }
-            return new Vector2();
+            //проверить коллизию квадрата в этом месте, свиднуть на разницу
+            return nPosition;
         }
         public void Move(Vector2 where)
         {

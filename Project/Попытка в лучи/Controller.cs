@@ -24,28 +24,24 @@ namespace Попытка_в_лучи
             {
                 while (true)
                 {
-                    var keyCode = Console.ReadKey();
+                    var keyCode = Console.ReadKey(true);
                     var key = keyCode.KeyChar;
-                    if (Console.KeyAvailable)
-                    {
-                        if (key == 'W' || key == 'Ц' || key == 'w' || key == 'ц')
-                            pressedKey = Key.W;
-                        else
-                    if (key == 'A' || key == 'Ф' || key == 'a' || key == 'ф')
-                            pressedKey = Key.A;
-                        else
-                    if (key == 'S' || key == 'Ы' || key == 's' || key == 'ы')
-                            pressedKey = Key.S;
-                        else
-                    if (key == 'D' || key == 'В' || key == 'd' || key == 'в')
-                            pressedKey = Key.D;
-                        if(keyCode.Key.ToString() == "LeftArrow")
-                            pressedKey = Key.LeftArrow;
-                        if(keyCode.Key.ToString() == "RightArrow")
-                            pressedKey = Key.RightArrow;
-
-                    }
-                    await Task.Delay(2000);
+                    if (key == 'W' || key == 'Ц' || key == 'w' || key == 'ц')
+                        pressedKey = Key.W;
+                    else
+                if (key == 'A' || key == 'Ф' || key == 'a' || key == 'ф')
+                        pressedKey = Key.A;
+                    else
+                if (key == 'S' || key == 'Ы' || key == 's' || key == 'ы')
+                        pressedKey = Key.S;
+                    else
+                if (key == 'D' || key == 'В' || key == 'd' || key == 'в')
+                        pressedKey = Key.D;
+                    if (keyCode.Key.ToString() == "LeftArrow")
+                        pressedKey = Key.LeftArrow;
+                    if (keyCode.Key.ToString() == "RightArrow")
+                        pressedKey = Key.RightArrow;
+                    await Task.Delay(100);
                     pressedKey = Key.NotAKey;
                 }
             });

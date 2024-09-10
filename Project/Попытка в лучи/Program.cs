@@ -13,10 +13,12 @@ namespace Попытка_в_лучи
 {
     public struct Vector2
     {
-        //точки начала
+        /// <summary>
+        /// x1,y1 - точки начала
+        /// x,y - точки конца
+        /// </summary>
         public float x1;
         public float y1;
-        //точки конца
         public float x;
         public float y;
         public Vector2(float x, float y)
@@ -46,14 +48,6 @@ namespace Попытка_в_лучи
         /// </summary>
         /// <param name="between"></param>
         /// <returns></returns>
-        public float SubjectiveRotation(Vector2 between)
-        {
-            float y = this.y - between.y;
-            float x = this.x - between.x;
-            float angle = (float)Math.Atan2(y, x);
-            if (y == 0 || x == 0) return 180f;
-            return angle < 0 ? angle + 2 * 3.14f : angle;
-        }
         public float Angle(Vector2 between)
         {
             return between.Rotation - Rotation;
@@ -62,13 +56,13 @@ namespace Попытка_в_лучи
         {
             return this / Magnitude;
         }
-        public Vector2 Invert()
+        public Vector2 Inverted()
         {
             return new Vector2(x, y, x1, y1);
         }
-        public void Invert(ref Vector2 origin)
+        public void Invert()
         {
-            origin = new Vector2(origin.x, origin.y, origin.x1, origin.y1);
+            this = new Vector2(x, y, x1, y1);
         }
 
         public Vector2 Rotate(float angleInDegrees)//надо изучить формулу и исправить баг с поворотом вектора
@@ -198,9 +192,9 @@ namespace Попытка_в_лучи
     public struct RayCast
     {
         public float stepLength;
-        private Rectangle[] localField;
+        private List<Rectangle> localField;
         private float depth;
-        public RayCast(float step, float depth, ref Rectangle[] field)
+        public RayCast(float step, float depth, ref List<Rectangle> field)
         {
             stepLength = step;
             localField = field;
@@ -237,7 +231,7 @@ namespace Попытка_в_лучи
                 List<Vector2> intesectedSides = new List<Vector2>();
                 List<float> intesections = new List<float>();
                 List<float> intersectDistances = new List<float>();
-                Vector2[] sides = new Vector2[]
+                Vector2[] sides = new Vector2[]//надо создавать не квадраты а сразу массив стен мб
                 {
                    new Vector2(rect.x.x,rect.x.y,invertedObj.y.x,invertedObj.y.y),
                    new Vector2(rect.x.x,rect.x.y,invertedObj.x.x,invertedObj.x.y),
@@ -248,13 +242,13 @@ namespace Попытка_в_лучи
                 {
                     Vector2 start = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x1, side.y1);
                     Vector2 end = new Vector2(ray.starterPoint.x, ray.starterPoint.y, side.x, side.y);
-                    float x = Converts.ToAngular(start.SubjectiveRotation(ray.starterPoint));
-                    float y = Converts.ToAngular(end.SubjectiveRotation(ray.starterPoint));
+                    float x = start.AngularRotation;
+                    float y = end.AngularRotation;
                     float maxLim = Math.Max(x, y);
                     float minLim = Math.Min(x, y);
                     Vector2 rotatedVector = new Vector2(start.x, start.y, end.x, end.y);
                     if (x == maxLim)
-                        rotatedVector.Invert(ref rotatedVector);
+                        rotatedVector.Invert();
                     if (ray.angle < maxLim && ray.angle > minLim
                         || ray.angle < minLim && ray.angle > maxLim)
                     {
@@ -295,29 +289,33 @@ namespace Попытка_в_лучи
     }
     internal class Program
     {
-        private readonly int width = 20;
-        private readonly int height = 40;
-        private static int mode = 48;
-        private static float horizon = 0;
-        private static int projHeight = 5;//макс высота объекта на расстоянии 1 ~метра
+        private static readonly int width = 20;
+        private static readonly int height = 40;
+        private static int mode = 51;
+        //координаты точки горизонта
+        private static int horizonX = height/2;
+        private static int horizonY = width/2;
+        //макс высота объекта на расстоянии 1 ~метра
+        private static int projHeight = 16;
         private static string modeName;
         private string screen;
+        private char[,] mapChar = new char[width,height];
         private int time = 0;
         private int frameNumber = 0;
         private int fps;
-        public static Rectangle[] field;
+        public static List<Rectangle> field;
         public static bool canHit;
-        static Camera cam;
+        private static Camera cam;
         public static List<Vector2> hits = new List<Vector2>();
         public static List<Vector2> collisionHits = new List<Vector2>();
         static void Main(string[] args)
         {
+            Thread inputCather = new Thread(Controller.StartTracking);
+            inputCather.Start();
             Program instance = new Program();
             instance.Init();
             instance.FPSReset();
             instance.Update();
-            Thread inputCather = new Thread(Controller.StartTracking);
-            inputCather.Start();
             while (true)
             {
                 switch (mode)
@@ -328,14 +326,14 @@ namespace Попытка_в_лучи
                     case 49: //1
                         modeName = "mapEnabled, rayCasting off";
                         break;
-                    case 51: //1
+                    case 51: //3
                         modeName = "mapDisabled, rayCastingProjection on";
                         break;
                     default:
                         modeName = "mapDisabled, rayCasting off";
                         break;
                 }
-                var key = Console.ReadKey();
+                var key = Console.ReadKey(true);
                 if (key.KeyChar == 48 || key.KeyChar == 49 || key.KeyChar == 51)
                     mode = key.KeyChar;
             }
@@ -353,7 +351,7 @@ namespace Попытка_в_лучи
         {
             while (true)
             {
-                if (time > 60)
+                if (time > 120)
                     Environment.Exit(0);
                 canHit = false;
                 time++;
@@ -376,60 +374,77 @@ namespace Попытка_в_лучи
             Rectangle b2 = new Rectangle(new Vector2(-1, -1), new Vector2(20, 1));//левая
             Rectangle b3 = new Rectangle(new Vector2(19, 39), new Vector2(19, -3));//БАГИИИИ БАГИИИ 
             Rectangle b4 = new Rectangle(new Vector2(18, 18), new Vector2(0, 18));//
-            field = new[] { a, b, c, d/*, b1, b2, b3, b4 */};
+            field = new List<Rectangle> { a, b, c, d/*, b1, b2, b3, b4 */};
 
         }
-        protected async Task Draw(Vector2[] hits)//нужно придумать, как по-другому отрисовывать кадр
+        protected async Task Draw(Vector2[] hits)
         {
             screen = "";
             int drawCall = 0;
             await Task.Run(() =>
             {
-                for (float i = 0; i < width; i++)
+                for (int i = 0; i < width; i++)
+                    for (int j = 0; j < height; j++)
+                        mapChar[i, j] = ' ';
+                for (int i = 0; i < width; i++)
                 {
-                    for (float j = 0; j < height; j++)
+                    for (int j = 0; j < height; j++)
                     {
-                        string draw = " ";
                         if (mode == 48)
-                            foreach (var elem in hits)
-                            {
-                                if (new Rectangle(new Vector2(elem.x1, elem.y1, elem.x, elem.y)).Round(1).
-                                Intersects(new Rectangle(new Vector2(i - 1 / (float)width, j - 1 / (float)height), new Vector2(i + 1 / (float)width, j + 1 / (float)height))))
+                        {
+                            foreach (var hit in hits)
+                                if (i == (int)Math.Round(hit.x) && j == (int)Math.Round(hit.y) &&
+                                mapChar[i, j] != '#')
                                 {
+                                    mapChar[i, j] = '#';
                                     drawCall++;
-                                    draw = "#";
                                     break;
                                 }
-                                FovVisual(cam.StartAngle, cam.EndAngle, new Vector2(i, j), ref draw);
-                            }
+                            FovVisual(cam.StartAngle, cam.EndAngle, new Vector2(i, j), ref mapChar[i, j]);
+                        }
                         if (mode == 49)
                         {
-                            foreach (var elem in field)
-                            {
-                                if (i == 19 && j == 1)
-                                    ;
-                                if (elem.Round(1).Intersects(new Rectangle(new Vector2(i - 1/(float)width, j - 1 / (float)height), new Vector2(i + 1 / (float)width, j + 1 / (float)height))))
+                            foreach (var obj in field)
+                                if (obj.Round(1).Intersects(new Rectangle(new Vector2(i - 1 / (float)width, j - 1 / (float)height), new Vector2(i + 1 / (float)width, j + 1 / (float)height))))
                                 {
-                                    draw = "#";
+                                    mapChar[i, j] = '#';
                                     drawCall++;
                                     break;
                                 }
-                                FovVisual(cam.StartAngle, cam.EndAngle, new Vector2(i, j), ref draw);
-                            }
+                            FovVisual(cam.StartAngle, cam.EndAngle, new Vector2(i, j), ref mapChar[i, j]);
                         }
                         if (mode == 51)
                         {
                             //отрисовка полосок
-                            foreach (var elem in hits)
+                            foreach (var hit in hits) //некорректная регистрация хитов
                             {
-                                float lineLength = projHeight - (projHeight / cam.Position.Distance(elem) / 1 - projHeight);
-                                //actualSize - (actualSize / Distance / Const - actualSize);
+                                float distance = cam.Position.Distance(hit);
+                                float distancedWall = projHeight / 7f * distance;
+                                float lineLength = projHeight / distancedWall * projHeight; 
+                                float xDisp = cam.EndAngle - new Vector2(cam.Position.x, cam.Position.y, hit.x, hit.y).AngularRotation;
+                                int forMin = horizonY - (int)Math.Round(lineLength / 2);
+                                int forMax = horizonY + (int)Math.Round(lineLength / 2);
+                                int xScrDisp = (int)Math.Round((double)(xDisp/(cam.EndAngle - cam.StartAngle) * height));
+                                for (int y = forMin; y < forMax; y++)
+                                {
+                                    #region Костыль
+                                    if (y >= width) continue;
+                                    if (xScrDisp >= height) continue;          
+                                    if (y < 0) continue;
+                                    if (xScrDisp < 0) continue;
+                                    #endregion
+                                    mapChar[y, xScrDisp] = '#';
+                                    drawCall++;
+                                }                       
                             }
                         }
-                        else
-                            FovVisual(cam.StartAngle, cam.EndAngle, new Vector2(i, j), ref draw);
-
-                        screen += draw;
+                    }
+                }
+                for (int i = 0; i < width; i++)
+                {
+                    for (int j = 0; j < height; j++)
+                    {
+                        screen += mapChar[i, j];
                     }
                     screen += "|\r\n";
                 }
@@ -440,14 +455,14 @@ namespace Попытка_в_лучи
             Clear();
             Console.Write(screen);
         }
-        private void FovVisual(float xAng, float yAng, Vector2 dot, ref string draw)
+        private void FovVisual(float xAng, float yAng, Vector2 dot, ref char pixel)
         {
-            if (draw != " ") return;
+            if (pixel != ' ') return;
             Vector2 subjective = new Vector2(cam.Position.x, cam.Position.y, dot.x, dot.y);
             float subjRotation = subjective.AngularRotation;
             if (subjRotation >= xAng && subjRotation <= yAng
                 || subjRotation <= xAng && subjRotation >= yAng)
-                draw = "-";
+                pixel = '-';
         }
         private void Clear()
         {
